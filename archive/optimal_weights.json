@@ -1,0 +1,39 @@
+{
+  "features": [
+    "total_invested",
+    "total_pnl",
+    "best_trade",
+    "avg_position_size",
+    "pnl_cat_sports",
+    "total_trades",
+    "markets_traded",
+    "statistical_confidence",
+    "trade_size_stdev",
+    "days_active",
+    "calmar_ratio",
+    "sortino_ratio",
+    "worst_trade",
+    "market_concentration_ratio"
+  ],
+  "weights": [
+    14.80823493035064,
+    6.718241206891146,
+    8.317404119208291,
+    1.1395413393062575,
+    3.226428633679896,
+    9.162538719190898,
+    7.0398911246396185,
+    1.7486741806082988,
+    21.441425391098985,
+    0.33481991174850917,
+    7.68783375140513,
+    0.7464309698092753,
+    17.003608907531163,
+    0.6249268145318854
+  ],
+  "spearman_rho": 0.2948335272230967,
+  "inverted": [
+    "worst_trade",
+    "market_concentration_ratio"
+  ]
+}

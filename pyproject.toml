@@ -1,0 +1,22 @@
+[project]
+name = "heisenberg-ml"
+version = "0.1.0"
+description = "Heisenberg ML pipelines — training models for Polymarket analytics"
+requires-python = ">=3.11"
+dependencies = [
+    "psycopg2-binary",
+    "sqlalchemy",
+    "pandas",
+    "numpy",
+    "scipy",
+    "pyarrow",
+    "python-dotenv",
+    "tqdm",
+]
+
+[project.optional-dependencies]
+dev = [
+    "lightgbm",
+    "scikit-learn",
+    "matplotlib",
+]
