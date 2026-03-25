@@ -350,11 +350,26 @@ def precompute_features_and_eligibility(snapshots, engine):
 
 
 def precompute_labels(snapshots, eligibility_cache, engine, forward_days=7):
-    """Single SQL query for labels across all snapshot dates."""
+    """Single SQL query for labels across all snapshot dates.
+
+    Only scans wallet_daily_pnl for eligible wallets (from eligibility_cache),
+    avoiding a full table scan of the 41GB+ table.
+    """
     start = snapshots[0].strftime("%Y-%m-%d")
     end = snapshots[-1].strftime("%Y-%m-%d")
     fwd_start = (snapshots[0] + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
     fwd_end = (snapshots[-1] + pd.Timedelta(days=forward_days)).strftime("%Y-%m-%d")
+
+    # Collect all eligible wallets across all snapshots
+    all_eligible = set()
+    for wallets in eligibility_cache.values():
+        all_eligible.update(wallets)
+
+    if not all_eligible:
+        print("  No eligible wallets — skipping labels.")
+        return {}
+
+    print(f"  Eligible wallet universe: {len(all_eligible):,}")
 
     sql = """
         WITH
@@ -365,6 +380,7 @@ def precompute_labels(snapshots, eligibility_cache, engine, forward_days=7):
             SELECT proxy_wallet, date, SUM(pnl) AS pnl
             FROM polymarket.wallet_daily_pnl
             WHERE date BETWEEN %(fwd_start)s AND %(fwd_end)s
+              AND proxy_wallet = ANY(%(wallets)s)
             GROUP BY proxy_wallet, date
         ),
         forward_pnl AS (
@@ -393,6 +409,7 @@ def precompute_labels(snapshots, eligibility_cache, engine, forward_days=7):
             "fwd_start": fwd_start, "fwd_end": fwd_end,
             "rank_threshold": RANK_THRESHOLD,
             "forward_days": forward_days,
+            "wallets": list(all_eligible),
         },
     )
     print(f"  Rows returned: {len(df):,}")

@@ -1,77 +1,101 @@
 """
-H-Score model configuration.
+Sport H-Score model configuration.
 
+Sports-focused scoring model using wallet_profile_metrics_v2.
 All feature lists, eligibility filters, train/test splits, and
-hyperparameters for the H-Score weighted scoring model.
+hyperparameters for the Sport H-Score weighted scoring model.
 """
 
 from dataclasses import dataclass, field
 
 
-# ── Feature definitions ──────────────────────────────────────────────────────
+# ── v2 table reference ───────────────────────────────────────────────────────
 
-FEATURES_BASE = [
-    "total_pnl",
-    "total_pnl_1d",
-    "total_pnl_3d",
-    "total_pnl_7d",
-    "total_invested",
-    "total_invested_3d",
-    "total_invested_7d",
-    "best_trade",
-    "best_trade_7d",
-    "avg_position_size",
-    "stddev_position_size_7d",
-    "dominant_market_pnl",
-    "dominant_market_pnl_7d",
-    "pnl_cat_sports",
-    "pnl_cat_other",
-    "pnl_cat_other_7d",
-    "perfect_entry_count",
-    "statistical_confidence",
-    "statistical_confidence_1d",
-    "markets_traded",
-    "pnl_cat_economics",
-    "worst_trade",
-    "worst_trade_1d",
-    "roi_1d",
-    "roi_3d",
-    "profit_factor",
-    "profit_factor_7d",
-    "win_rate",
-    "win_rate_1d",
-    "win_rate_3d",
-    "market_concentration_ratio",
-    "pnl_cat_crypto",
-]
+TABLE = "polymarket.wallet_profile_metrics_v2"
 
-FEATURES_RATIOS = [
-    "sortino_ratio",
-    "calmar_ratio",
-    "gain_to_pain_ratio",
-    "annualized_return",
-    "total_trades",
-]
+# ── Sports sub-category mapping ──────────────────────────────────────────────
+# Maps JSONB category strings to column suffixes.
+# The JSONB uses hierarchical format: "Sports / Basketball / NBA"
 
-FEATURES = FEATURES_BASE + FEATURES_RATIOS
-N_FEATURES = len(FEATURES)
-
-# Features where higher raw value → lower score (negated before ranking)
-INVERT = {
-    "worst_trade",
-    "worst_trade_1d",
-    "roi_1d",
-    "roi_3d",
-    "profit_factor",
-    "profit_factor_7d",
-    "win_rate",
-    "win_rate_1d",
-    "win_rate_3d",
-    "market_concentration_ratio",
-    "pnl_cat_crypto",
+SPORTS_SUBCATS = {
+    "Sports / Baseball / MLB": "mlb",
+    "Sports / Basketball / NBA": "nba",
+    "Sports / Basketball / WNBA": "wnba",
+    "Sports / Basketball / College": "college_basketball",
+    "Sports / Football / NFL": "nfl",
+    "Sports / Football / College": "college_football",
+    "Sports / Hockey / NHL": "nhl",
+    "Sports / Soccer / EPL": "epl",
+    "Sports / Soccer / Champions League": "champions_league",
+    "Sports / Soccer / La Liga": "la_liga",
+    "Sports / Soccer / Ligue 1": "ligue_1",
+    "Sports / Soccer / Bundesliga": "bundesliga",
+    "Sports / Cricket": "cricket",
+    "Sports / Tennis": "tennis",
+    "Sports / Golf": "golf",
+    "Sports / Rugby": "rugby",
+    "Sports / Combat Sports": "combat_sports",
+    "Sports / Motorsport / F1": "f1",
+    "Sports / Olympics": "olympics",
 }
 
-# Sparse ratio columns → imputed with training-data median (not 0)
+# ── Feature definitions ──────────────────────────────────────────────────────
+
+FEATURES_OVERALL = [
+    "total_pnl",
+    "best_market_pnl",
+    "worst_market_pnl",
+    "avg_market_exposure",
+    "profitable_markets_count",
+    "sortino_ratio",
+    "calmar_ratio",
+    "annualized_return",
+]
+
+FEATURES_SPORTS_AGG = [
+    "sports_pnl",
+    "sports_trades",
+    "sports_invested",
+]
+
+FEATURES_SPORTS_SUBCATS = [
+    "sports_pnl_mlb",
+    "sports_pnl_la_liga",
+    "sports_pnl_ligue_1",
+    "sports_pnl_bundesliga",
+    "sports_pnl_wnba",
+    "sports_pnl_golf",
+    "sports_pnl_college_football",
+    "sports_pnl_f1",
+]
+
+FEATURES_MULTIWINDOW = [
+    "total_invested_7d",
+    "best_market_pnl_7d",
+    "worst_market_pnl_7d",
+    "profit_factor_7d",
+    "win_rate_7d",
+    "pnl_cat_sports_7d",
+    "total_pnl_3d",
+    "total_invested_3d",
+]
+
+FEATURES_BASE = FEATURES_OVERALL + FEATURES_SPORTS_AGG + FEATURES_SPORTS_SUBCATS
+
+# Full feature list used by the optimizer
+FEATURES = FEATURES_BASE + FEATURES_MULTIWINDOW
+
+N_FEATURES = len(FEATURES)
+
+# Features where higher raw value -> lower score (negated before ranking)
+INVERT = {
+    "worst_market_pnl",
+    "worst_market_pnl_7d",
+    "profit_factor_7d",
+    "win_rate_7d",
+}
+
+# Sparse ratio columns -> imputed with training-data median
 FILLNA_MEDIAN_FEATS = {
     "sortino_ratio",
     "calmar_ratio",
@@ -84,25 +108,25 @@ FILLNA_MEDIAN_FEATS = {
 WINDOW_METRIC_COLS = [
     "total_pnl",
     "total_invested",
-    "worst_trade",
-    "best_trade",
+    "worst_market_pnl",
+    "best_market_pnl",
     "total_trades",
     "roi",
     "win_rate",
-    "avg_position_size",
+    "avg_market_exposure",
     "stddev_position_size",
     "dominant_market_pnl",
     "profit_factor",
     "market_concentration_ratio",
-    "perfect_entry_count",
+    "profitable_markets_count",
     "statistical_confidence",
     "performance_by_category",
 ]
 
-JSONB_CATS = ["sports", "other"]
+JSONB_CATS = ["sports"]
 WINDOWS = [1, 3, 7]
 
-# ── Base feature columns from wallet_profile_metrics (window=15) ─────────
+# ── Base feature columns from wallet_profile_metrics_v2 (window=15) ─────────
 
 METRIC_COLS = [
     "proxy_wallet",
@@ -122,25 +146,26 @@ METRIC_COLS = [
     "recovery_time_avg",
     "profit_factor",
     "performance_trend",
-    "curve_smoothness",
+    "curve_volatility",
     "equity_curve_pattern",
-    "avg_position_size",
+    "avg_market_exposure",
+    "avg_trade_size",
     "stddev_position_size",
     "coefficient_of_variation",
     "dominant_market_pnl",
     "market_concentration_ratio",
     "category_diversity_score",
     "days_active",
-    "best_trade",
-    "worst_trade",
-    "win_rate_last_30d",
+    "best_market_pnl",
+    "worst_market_pnl",
+    "win_rate_last_30day",
     "win_rate_z_score",
     "timing_hit_rate",
     "timing_z_score",
     "timing_anomaly_flag",
     "perfect_timing_score",
-    "perfect_entry_count",
-    "perfect_exit_count",
+    "profitable_markets_count",
+    "high_win_rate_markets_count",
     "statistical_confidence",
     "combined_risk_score",
     "risk_level",
@@ -149,10 +174,13 @@ METRIC_COLS = [
     "sybil_risk_score",
     "sybil_risk_flag",
     "num_markets_traded",
+    "buy_trade_ratio",
+    "sell_trade_ratio",
+    "pnl_last_30day",
     "performance_by_category",
 ]
 
-# Sparse ratio columns for base features → imputed with per-snapshot median
+# Sparse ratio columns for base features -> imputed with per-snapshot median
 FILLNA_MEDIAN_COLS = [
     "sortino_ratio",
     "calmar_ratio",
@@ -160,28 +188,19 @@ FILLNA_MEDIAN_COLS = [
     "annualized_return",
 ]
 
-# Known performance_by_category categories
-KNOWN_CATEGORIES = [
-    "Sports",
-    "Crypto",
-    "World Events",
-    "Economics",
-    "Science & Tech",
-    "Politics",
-    "Entertainment",
-    "Weather",
-    "Other",
-]
-
 # ── Eligibility filters ─────────────────────────────────────────────────────
 
 ELIGIBILITY_SQL_FILTERS = """
     AND roi > 0
-    AND win_rate BETWEEN 0.45 AND 0.95
-    AND total_trades BETWEEN 50 AND 100000
-    AND total_pnl > 5000
-    AND combined_risk_score <= 50
+    AND win_rate BETWEEN 0.40 AND 0.95
+    AND total_trades BETWEEN 20 AND 100000
+    AND total_pnl > 1000
+    AND combined_risk_score <= 60
 """
+
+# Sports-specific eligibility (applied in Python after JSONB parse)
+MIN_SPORTS_TRADES = 10
+MIN_SPORTS_PNL = 100
 
 # ── Walk-forward evaluation ──────────────────────────────────────────────────
 
@@ -196,9 +215,7 @@ FOLDS = [
 
 KNOWN_WALLETS = {
     "cf11 (NBA)": "0xcf119e969f31de9653a58cb3dc213b485cd48399",
-    "ccb2 (CS2)": "0xccb290b1c145d1c95695d3756346bba9f1398586",
     "916f (UCL)": "0x916f7165c2c836aba22edb6453cdbb5f3ea253ba",
-    "d008 (selective)": "0xd008786fad743d0d5c60f99bff5d90ebc212135d",
 }
 
 # ── Tier thresholds ──────────────────────────────────────────────────────────
@@ -214,12 +231,12 @@ TIERS = [
 
 PIPELINE_START = "2026-01-24"
 PIPELINE_END = "2026-03-17"
-RANK_THRESHOLD = 500
+RANK_THRESHOLD = 200
 
 
 @dataclass
-class HScoreConfig:
-    """Runtime configuration for the H-Score model."""
+class SportHScoreConfig:
+    """Runtime configuration for the Sport H-Score model."""
 
     features: list[str] = field(default_factory=lambda: list(FEATURES))
     n_features: int = N_FEATURES
