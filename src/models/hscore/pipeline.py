@@ -20,6 +20,7 @@ from src.models.hscore.config import (
     PIPELINE_END,
     PIPELINE_START,
     RANK_THRESHOLD,
+    TABLE,
     WINDOW_METRIC_COLS,
     WINDOWS,
 )
@@ -40,14 +41,18 @@ def parse_dominant_category(jsonb_val) -> str | None:
         items = json.loads(jsonb_val) if isinstance(jsonb_val, str) else jsonb_val
         if not items:
             return None
-        best = max(items, key=lambda x: float(x.get("pnl", 0)))
+        best = max(items, key=lambda x: float(x.get("total_pnl", 0)))
         return best.get("category")
     except Exception:
         return None
 
 
 def parse_category_pnl(jsonb_val) -> dict:
-    """Return per-category PnL as flat columns."""
+    """Return per-top-level-category PnL as flat columns.
+
+    v2 JSONB contains hierarchical paths (e.g. "Sports / Basketball / NBA").
+    Only top-level category names (e.g. "Sports", "Crypto") are matched here.
+    """
     result = {_key(c): 0.0 for c in KNOWN_CATEGORIES}
     if jsonb_val is None:
         return result
@@ -56,7 +61,7 @@ def parse_category_pnl(jsonb_val) -> dict:
         for item in items:
             key = _key(item.get("category", ""))
             if key in result:
-                result[key] = float(item.get("pnl", 0))
+                result[key] = float(item.get("total_pnl", 0))
     except Exception:
         pass
     return result
@@ -73,7 +78,7 @@ def parse_window_jsonb(jsonb_val) -> dict:
             cat = item.get("category", "")
             k = _key(cat)
             if k in result:
-                result[k] = float(item.get("pnl", 0))
+                result[k] = float(item.get("total_pnl", 0))
     except Exception:
         pass
     return result
@@ -118,9 +123,9 @@ def build_eligibility(snapshot_date: str) -> pd.DataFrame:
         params={"start": str(window_start_7d.date()), "snap": str(snap)},
     )
 
-    sql_risk = """
+    sql_risk = f"""
         SELECT proxy_wallet, combined_risk_score
-        FROM polymarket.wallet_profile_metrics
+        FROM {TABLE}
         WHERE date = %(snap)s AND calculation_window_days = 15
     """
     df_risk = pd.read_sql(sql_risk, engine, params={"snap": str(snap)})
@@ -160,7 +165,7 @@ def build_eligibility(snapshot_date: str) -> pd.DataFrame:
 def build_features(
     snapshot_date: str, eligible_wallets: set | None = None
 ) -> pd.DataFrame:
-    """Pull 15d features from wallet_profile_metrics for eligible wallets."""
+    """Pull 15d features from wallet_profile_metrics_v2 for eligible wallets."""
     snap = pd.Timestamp(snapshot_date).date()
     engine = get_engine()
 
@@ -171,7 +176,7 @@ def build_features(
     col_select = ", ".join(METRIC_COLS)
     sql = f"""
         SELECT {col_select}
-        FROM polymarket.wallet_profile_metrics
+        FROM {TABLE}
         WHERE date = %(snap)s
           AND calculation_window_days = 15
           AND proxy_wallet = ANY(%(wallets)s)
@@ -210,7 +215,7 @@ def fetch_window(engine, window_days: int, wallets: list, dates: list) -> pd.Dat
 
     sql = f"""
         SELECT {col_select}
-        FROM polymarket.wallet_profile_metrics
+        FROM {TABLE}
         WHERE calculation_window_days = %(window)s
           AND proxy_wallet = ANY(%(wallets)s)
           AND date = ANY(%(dates)s::date[])
@@ -306,7 +311,7 @@ def precompute_features_and_eligibility(snapshots, engine):
 
     sql = f"""
         SELECT {col_select}
-        FROM polymarket.wallet_profile_metrics
+        FROM {TABLE}
         WHERE date >= %(start)s
           AND date <= %(end)s
           AND calculation_window_days = 15

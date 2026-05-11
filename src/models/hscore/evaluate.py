@@ -37,7 +37,7 @@ def _step(val: float, thresholds: list, scores: list) -> float:
 
 
 def compute_current_formula(df: pd.DataFrame) -> pd.Series:
-    """Approximated H-Score from wallet_profile_metrics columns."""
+    """Approximated H-Score from wallet_profile_metrics_v2 columns."""
     roi_score = df["roi"].clip(lower=0).clip(upper=1.0) * 20
     win_rate_score = ((df["win_rate"] - 0.5).clip(lower=0) / 0.45 * 20).clip(upper=20)
     div_score = df["markets_traded"].apply(

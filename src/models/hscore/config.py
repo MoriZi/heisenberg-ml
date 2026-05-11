@@ -3,9 +3,16 @@ H-Score model configuration.
 
 All feature lists, eligibility filters, train/test splits, and
 hyperparameters for the H-Score weighted scoring model.
+
+Source table: polymarket.wallet_profile_metrics_v2.
 """
 
 from dataclasses import dataclass, field
+
+
+# ── v2 table reference ───────────────────────────────────────────────────────
+
+TABLE = "polymarket.wallet_profile_metrics_v2"
 
 
 # ── Feature definitions ──────────────────────────────────────────────────────
@@ -18,22 +25,21 @@ FEATURES_BASE = [
     "total_invested",
     "total_invested_3d",
     "total_invested_7d",
-    "best_trade",
-    "best_trade_7d",
-    "avg_position_size",
+    "best_market_pnl",
+    "best_market_pnl_7d",
+    "avg_market_exposure",
     "stddev_position_size_7d",
     "dominant_market_pnl",
     "dominant_market_pnl_7d",
     "pnl_cat_sports",
     "pnl_cat_other",
     "pnl_cat_other_7d",
-    "perfect_entry_count",
     "statistical_confidence",
     "statistical_confidence_1d",
     "markets_traded",
     "pnl_cat_economics",
-    "worst_trade",
-    "worst_trade_1d",
+    "worst_market_pnl",
+    "worst_market_pnl_1d",
     "roi_1d",
     "roi_3d",
     "profit_factor",
@@ -58,8 +64,8 @@ N_FEATURES = len(FEATURES)
 
 # Features where higher raw value → lower score (negated before ranking)
 INVERT = {
-    "worst_trade",
-    "worst_trade_1d",
+    "worst_market_pnl",
+    "worst_market_pnl_1d",
     "roi_1d",
     "roi_3d",
     "profit_factor",
@@ -84,17 +90,16 @@ FILLNA_MEDIAN_FEATS = {
 WINDOW_METRIC_COLS = [
     "total_pnl",
     "total_invested",
-    "worst_trade",
-    "best_trade",
+    "worst_market_pnl",
+    "best_market_pnl",
     "total_trades",
     "roi",
     "win_rate",
-    "avg_position_size",
+    "avg_market_exposure",
     "stddev_position_size",
     "dominant_market_pnl",
     "profit_factor",
     "market_concentration_ratio",
-    "perfect_entry_count",
     "statistical_confidence",
     "performance_by_category",
 ]
@@ -102,7 +107,7 @@ WINDOW_METRIC_COLS = [
 JSONB_CATS = ["sports", "other"]
 WINDOWS = [1, 3, 7]
 
-# ── Base feature columns from wallet_profile_metrics (window=15) ─────────
+# ── Base feature columns from wallet_profile_metrics_v2 (window=15) ─────────
 
 METRIC_COLS = [
     "proxy_wallet",
@@ -122,25 +127,26 @@ METRIC_COLS = [
     "recovery_time_avg",
     "profit_factor",
     "performance_trend",
-    "curve_smoothness",
+    "curve_volatility",
     "equity_curve_pattern",
-    "avg_position_size",
+    "avg_market_exposure",
+    "avg_trade_size",
     "stddev_position_size",
     "coefficient_of_variation",
     "dominant_market_pnl",
     "market_concentration_ratio",
     "category_diversity_score",
     "days_active",
-    "best_trade",
-    "worst_trade",
-    "win_rate_last_30d",
+    "best_market_pnl",
+    "worst_market_pnl",
+    "win_rate_last_30day",
     "win_rate_z_score",
     "timing_hit_rate",
     "timing_z_score",
     "timing_anomaly_flag",
     "perfect_timing_score",
-    "perfect_entry_count",
-    "perfect_exit_count",
+    "profitable_markets_count",
+    "high_win_rate_markets_count",
     "statistical_confidence",
     "combined_risk_score",
     "risk_level",
@@ -149,6 +155,9 @@ METRIC_COLS = [
     "sybil_risk_score",
     "sybil_risk_flag",
     "num_markets_traded",
+    "buy_trade_ratio",
+    "sell_trade_ratio",
+    "pnl_last_30day",
     "performance_by_category",
 ]
 
@@ -185,13 +194,13 @@ ELIGIBILITY_SQL_FILTERS = """
 
 # ── Walk-forward evaluation ──────────────────────────────────────────────────
 
-TRAIN_END = "2026-03-01"
-TEST_START = "2026-03-08"
+TRAIN_END = "2026-04-20"
+TEST_START = "2026-04-27"
 
 FOLDS = [
-    {"name": "Fold 1", "train_end": "2026-02-01", "test_start": "2026-02-08"},
-    {"name": "Fold 2", "train_end": "2026-02-15", "test_start": "2026-02-22"},
-    {"name": "Fold 3", "train_end": "2026-03-01", "test_start": "2026-03-08"},
+    {"name": "Fold 1", "train_end": "2026-04-01", "test_start": "2026-04-08"},
+    {"name": "Fold 2", "train_end": "2026-04-10", "test_start": "2026-04-17"},
+    {"name": "Fold 3", "train_end": "2026-04-20", "test_start": "2026-04-27"},
 ]
 
 KNOWN_WALLETS = {
@@ -212,8 +221,8 @@ TIERS = [
 
 # ── Pipeline date range ──────────────────────────────────────────────────────
 
-PIPELINE_START = "2026-01-24"
-PIPELINE_END = "2026-03-17"
+PIPELINE_START = "2026-03-05"
+PIPELINE_END = "2026-05-04"
 RANK_THRESHOLD = 500
 
 

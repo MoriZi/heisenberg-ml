@@ -12,7 +12,7 @@ from pathlib import Path
 import pandas as pd
 
 from src.common.db import get_connection
-from src.models.hscore.config import TIERS
+from src.models.hscore.config import TABLE, TIERS
 
 
 TIER_ORDER = [t[0] for t in TIERS]
@@ -25,7 +25,7 @@ OUTPUT_COLS = [
     "total_invested",
     "total_pnl",
     "win_rate",
-    "worst_trade",
+    "worst_market_pnl",
     "total_trades",
     "markets_traded",
 ]
@@ -41,11 +41,11 @@ def load_sql_no_limit(path: str) -> str:
 
 
 def get_snapshot_date(conn) -> str:
-    """Fetch the latest date with calculation_window_days=15 from the DB."""
+    """Fetch the latest date with calculation_window_days=15 from v2."""
     row = pd.read_sql(
-        "SELECT MAX(date)::text AS snap "
-        "FROM polymarket.wallet_profile_metrics "
-        "WHERE calculation_window_days = 15",
+        f"SELECT MAX(date)::text AS snap "
+        f"FROM {TABLE} "
+        f"WHERE calculation_window_days = 15",
         conn,
     ).iloc[0]
     return row["snap"]
@@ -78,7 +78,7 @@ def print_summary(df: pd.DataFrame, snap_date: str) -> None:
     top20["proxy_wallet"] = top20["proxy_wallet"].str[:12] + "…"
     top20["win_rate"] = top20["win_rate"].map(lambda x: f"{x:.1%}")
     top20["total_pnl"] = top20["total_pnl"].map(lambda x: f"${x:>12,.0f}")
-    top20["worst_trade"] = top20["worst_trade"].map(lambda x: f"${x:>10,.0f}")
+    top20["worst_market_pnl"] = top20["worst_market_pnl"].map(lambda x: f"${x:>10,.0f}")
     top20["total_invested"] = top20["total_invested"].map(lambda x: f"${x:>12,.0f}")
     print(top20.to_string(index=False))
 

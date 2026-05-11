@@ -1,5 +1,13 @@
 -- deploy_formula_v8.sql
 --
+-- ⚠ STALE — pending regeneration after v2 retrain.
+-- This formula references polymarket.wallet_profile_metrics (v1) and
+-- the v1 column names (best_trade, worst_trade, avg_position_size,
+-- perfect_entry_count, …). The Python pipeline/training stack now
+-- targets wallet_profile_metrics_v2, so the weights baked in below
+-- no longer match the feature set produced by train.py.
+-- Rebuild: rerun pipeline.py → train.py → regenerate this SQL.
+--
 -- H-Score formula — feature set v8 (Precision@25 objective).
 -- Weights from optimal_weights_v8.json (scipy SLSQP, 50 random inits,
 -- objective: mean Precision@25 across snapshot dates).
