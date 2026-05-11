@@ -204,13 +204,13 @@ MIN_SPORTS_PNL = 100
 
 # ── Walk-forward evaluation ──────────────────────────────────────────────────
 
-TRAIN_END = "2026-03-01"
-TEST_START = "2026-03-08"
+TRAIN_END = "2026-04-20"
+TEST_START = "2026-04-27"
 
 FOLDS = [
-    {"name": "Fold 1", "train_end": "2026-02-01", "test_start": "2026-02-08"},
-    {"name": "Fold 2", "train_end": "2026-02-15", "test_start": "2026-02-22"},
-    {"name": "Fold 3", "train_end": "2026-03-01", "test_start": "2026-03-08"},
+    {"name": "Fold 1", "train_end": "2026-04-01", "test_start": "2026-04-08"},
+    {"name": "Fold 2", "train_end": "2026-04-10", "test_start": "2026-04-17"},
+    {"name": "Fold 3", "train_end": "2026-04-20", "test_start": "2026-04-27"},
 ]
 
 KNOWN_WALLETS = {
@@ -229,8 +229,8 @@ TIERS = [
 
 # ── Pipeline date range ──────────────────────────────────────────────────────
 
-PIPELINE_START = "2026-01-24"
-PIPELINE_END = "2026-03-17"
+PIPELINE_START = "2026-03-05"
+PIPELINE_END = "2026-05-04"
 RANK_THRESHOLD = 200
 
 
