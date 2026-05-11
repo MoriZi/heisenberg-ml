@@ -7,6 +7,7 @@ both raw psycopg2 connections and SQLAlchemy engines.
 
 import os
 from pathlib import Path
+from urllib.parse import quote_plus
 
 import psycopg2
 from dotenv import load_dotenv
@@ -35,5 +36,5 @@ def get_engine():
     dbname = os.environ["DB_NAME"]
     user = os.environ["DB_USER"]
     password = os.environ["DB_PASSWORD"]
-    url = f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{dbname}"
+    url = f"postgresql+psycopg2://{quote_plus(user)}:{quote_plus(password)}@{host}:{port}/{dbname}"
     return create_engine(url)
