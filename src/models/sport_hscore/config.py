@@ -231,7 +231,11 @@ TIERS = [
 
 PIPELINE_START = "2026-03-05"
 PIPELINE_END = "2026-05-04"
-RANK_THRESHOLD = 200
+# Raised from 200 to 1000 on 2026-05-11 to match h_score's relative regime
+# (top 7.7% of eligible universe ~ 18% label rate, vs prior 1.5% / 4.3%).
+# The strict rank=200 was empirically starving the optimizer of positive signal
+# at k=25, causing the optimized model to LOSE to equal-weights at the top.
+RANK_THRESHOLD = 1000
 
 
 @dataclass

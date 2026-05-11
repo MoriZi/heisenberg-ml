@@ -38,25 +38,37 @@ BACKUP   = ROOT / "src/sport_mcp/_backups" / f"595_pre-595-regen_{date.today().s
 # This list is locked to the template — do NOT add features here without first
 # adding the matching PERCENT_RANK line in 595.sql.
 TEMPLATE_SLOTS = [
+    # 15d base
     ("total_pnl",                "pr_total_pnl",                "ASC"),
     ("best_market_pnl",          "pr_best_market_pnl",          "ASC"),
-    ("total_invested_7d",        "pr_total_invested_7d",        "ASC"),
-    ("win_rate_7d",              "pr_win_rate_7d",              "DESC"),
-    ("sports_trades",            "pr_sports_trades",            "ASC"),
-    ("best_market_pnl_7d",       "pr_best_market_pnl_7d",       "ASC"),
-    ("worst_market_pnl_7d",      "pr_worst_market_pnl_7d",      "DESC"),
-    ("annualized_return",        "pr_annualized_return",        "ASC"),
-    ("profitable_markets_count", "pr_profitable_markets_count", "ASC"),
-    ("avg_market_exposure",      "pr_avg_market_exposure",      "ASC"),
-    ("pnl_cat_sports_7d",        "pr_pnl_cat_sports_7d",        "ASC"),
-    ("sports_invested",          "pr_sports_invested",          "ASC"),
     ("worst_market_pnl",         "pr_worst_market_pnl",         "DESC"),
-    ("sports_pnl_mlb",           "pr_sports_pnl_mlb",           "ASC"),
+    ("avg_market_exposure",      "pr_avg_market_exposure",      "ASC"),
+    ("profitable_markets_count", "pr_profitable_markets_count", "ASC"),
     ("sortino_ratio",            "pr_sortino_ratio",            "ASC"),
+    ("annualized_return",        "pr_annualized_return",        "ASC"),
+    ("calmar_ratio",             "pr_calmar_ratio",             "ASC"),
+    # sports aggregate + sub-cat
     ("sports_pnl",               "pr_sports_pnl",               "ASC"),
+    ("sports_trades",            "pr_sports_trades",            "ASC"),
+    ("sports_invested",          "pr_sports_invested",          "ASC"),
+    ("sports_pnl_mlb",           "pr_sports_pnl_mlb",           "ASC"),
     ("sports_pnl_la_liga",       "pr_sports_pnl_la_liga",       "ASC"),
     ("sports_pnl_ligue_1",       "pr_sports_pnl_ligue_1",       "ASC"),
+    ("sports_pnl_bundesliga",    "pr_sports_pnl_bundesliga",    "ASC"),
+    ("sports_pnl_wnba",          "pr_sports_pnl_wnba",          "ASC"),
+    ("sports_pnl_golf",          "pr_sports_pnl_golf",          "ASC"),
+    ("sports_pnl_college_football", "pr_sports_pnl_college_football", "ASC"),
+    ("sports_pnl_f1",            "pr_sports_pnl_f1",            "ASC"),
+    # 7d window
+    ("total_invested_7d",        "pr_total_invested_7d",        "ASC"),
+    ("best_market_pnl_7d",       "pr_best_market_pnl_7d",       "ASC"),
+    ("worst_market_pnl_7d",      "pr_worst_market_pnl_7d",      "DESC"),
     ("profit_factor_7d",         "pr_profit_factor_7d",         "DESC"),
+    ("win_rate_7d",              "pr_win_rate_7d",              "DESC"),
+    ("pnl_cat_sports_7d",        "pr_pnl_cat_sports_7d",        "ASC"),
+    # 3d window
+    ("total_pnl_3d",             "pr_total_pnl_3d",             "ASC"),
+    ("total_invested_3d",        "pr_total_invested_3d",        "ASC"),
 ]
 
 # Markers that bound the scored-CTE weight block in the SQL. Surgical replace

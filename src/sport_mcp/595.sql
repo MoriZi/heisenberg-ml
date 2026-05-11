@@ -14,6 +14,9 @@ latest_v2_15d AS (
 latest_v2_7d AS (
     SELECT MAX(date) AS d FROM polymarket.wallet_profile_metrics_v2 WHERE calculation_window_days = 7
 ),
+latest_v2_3d AS (
+    SELECT MAX(date) AS d FROM polymarket.wallet_profile_metrics_v2 WHERE calculation_window_days = 3
+),
 latest_cat_15d AS (
     SELECT MAX(date) AS d FROM polymarket.wallet_profile_metrics_category_v2 WHERE calculation_window_days = 15
 ),
@@ -27,6 +30,7 @@ base AS (
         g.avg_market_exposure, g.profitable_markets_count,
         COALESCE(g.sortino_ratio, 0.9566) AS sortino_ratio,
         COALESCE(g.annualized_return, 3.0638) AS annualized_return,
+        g.calmar_ratio,
         g.win_rate, g.sharpe_ratio, g.performance_trend,
         g.total_trades, g.markets_traded, g.total_invested
     FROM polymarket.wallet_profile_metrics_v2 g, latest_v2_15d, params p
@@ -51,6 +55,11 @@ sport_15d AS (
         MAX(CASE WHEN c.category = 'Sports / Baseball / MLB' THEN c.total_pnl ELSE 0 END) AS sports_pnl_mlb,
         MAX(CASE WHEN c.category = 'Sports / Soccer / La Liga' THEN c.total_pnl ELSE 0 END) AS sports_pnl_la_liga,
         MAX(CASE WHEN c.category = 'Sports / Soccer / Ligue 1' THEN c.total_pnl ELSE 0 END) AS sports_pnl_ligue_1,
+        MAX(CASE WHEN c.category = 'Sports / Soccer / Bundesliga' THEN c.total_pnl ELSE 0 END) AS sports_pnl_bundesliga,
+        MAX(CASE WHEN c.category = 'Sports / Basketball / WNBA' THEN c.total_pnl ELSE 0 END) AS sports_pnl_wnba,
+        MAX(CASE WHEN c.category = 'Sports / Golf' THEN c.total_pnl ELSE 0 END) AS sports_pnl_golf,
+        MAX(CASE WHEN c.category = 'Sports / Football / College' THEN c.total_pnl ELSE 0 END) AS sports_pnl_college_football,
+        MAX(CASE WHEN c.category = 'Sports / Motorsport / F1' THEN c.total_pnl ELSE 0 END) AS sports_pnl_f1,
         STRING_AGG(
             CASE WHEN c.category LIKE 'Sports / % / %' AND c.total_pnl > 0
             THEN c.category ELSE NULL END,
@@ -73,6 +82,15 @@ snap_7d AS (
         AND proxy_wallet IN (SELECT proxy_wallet FROM sport_15d)
 ),
 
+snap_3d AS (
+    SELECT proxy_wallet,
+        total_pnl AS total_pnl_3d,
+        total_invested AS total_invested_3d
+    FROM polymarket.wallet_profile_metrics_v2, latest_v2_3d
+    WHERE date = latest_v2_3d.d AND calculation_window_days = 3
+        AND proxy_wallet IN (SELECT proxy_wallet FROM sport_15d)
+),
+
 sport_7d AS (
     SELECT proxy_wallet,
         COALESCE(MAX(CASE WHEN category = 'Sports' THEN total_pnl END),
@@ -86,17 +104,22 @@ sport_7d AS (
 eligible AS (
     SELECT b.*, s15.sports_pnl, s15.sports_trades, s15.sports_invested,
         s15.sports_pnl_mlb, s15.sports_pnl_la_liga, s15.sports_pnl_ligue_1,
+        s15.sports_pnl_bundesliga, s15.sports_pnl_wnba, s15.sports_pnl_golf,
+        s15.sports_pnl_college_football, s15.sports_pnl_f1,
         s15.sport_tags,
         COALESCE(s7g.total_invested_7d, 0) AS total_invested_7d,
         COALESCE(s7g.best_market_pnl_7d, 0) AS best_market_pnl_7d,
         COALESCE(s7g.worst_market_pnl_7d, 0) AS worst_market_pnl_7d,
         COALESCE(s7g.profit_factor_7d, 0) AS profit_factor_7d,
         COALESCE(s7g.win_rate_7d, 0) AS win_rate_7d,
-        COALESCE(s7s.pnl_cat_sports_7d, 0) AS pnl_cat_sports_7d
+        COALESCE(s7s.pnl_cat_sports_7d, 0) AS pnl_cat_sports_7d,
+        COALESCE(s3.total_pnl_3d, 0) AS total_pnl_3d,
+        COALESCE(s3.total_invested_3d, 0) AS total_invested_3d
     FROM base b
     JOIN sport_15d s15 ON s15.proxy_wallet = b.proxy_wallet
     LEFT JOIN snap_7d s7g ON s7g.proxy_wallet = b.proxy_wallet
     LEFT JOIN sport_7d s7s ON s7s.proxy_wallet = b.proxy_wallet
+    LEFT JOIN snap_3d s3 ON s3.proxy_wallet = b.proxy_wallet
 ),
 
 scored AS (
@@ -105,25 +128,33 @@ scored AS (
         performance_trend, total_trades, markets_traded, total_invested,
         sport_tags,
         ROUND((
-            PERCENT_RANK() OVER (ORDER BY total_pnl ASC)                  * 12.429 +
-            PERCENT_RANK() OVER (ORDER BY best_market_pnl ASC)            * 10.106 +
-            PERCENT_RANK() OVER (ORDER BY total_invested_7d ASC)          * 10.050 +
-            PERCENT_RANK() OVER (ORDER BY win_rate_7d DESC)               *  8.752 +
-            PERCENT_RANK() OVER (ORDER BY sports_trades ASC)              *  7.473 +
-            PERCENT_RANK() OVER (ORDER BY best_market_pnl_7d ASC)         *  7.559 +
-            PERCENT_RANK() OVER (ORDER BY worst_market_pnl_7d DESC)       *  7.336 +
-            PERCENT_RANK() OVER (ORDER BY annualized_return ASC)          *  5.034 +
-            PERCENT_RANK() OVER (ORDER BY profitable_markets_count ASC)   *  6.269 +
-            PERCENT_RANK() OVER (ORDER BY avg_market_exposure ASC)        *  6.344 +
-            PERCENT_RANK() OVER (ORDER BY pnl_cat_sports_7d ASC)          *  2.864 +
-            PERCENT_RANK() OVER (ORDER BY sports_invested ASC)            *  3.201 +
-            PERCENT_RANK() OVER (ORDER BY worst_market_pnl DESC)          *  2.173 +
-            PERCENT_RANK() OVER (ORDER BY sports_pnl_mlb ASC)             *  2.760 +
-            PERCENT_RANK() OVER (ORDER BY sortino_ratio ASC)              *  1.644 +
-            PERCENT_RANK() OVER (ORDER BY sports_pnl ASC)                 *  1.949 +
-            PERCENT_RANK() OVER (ORDER BY sports_pnl_la_liga ASC)         *  1.154 +
-            PERCENT_RANK() OVER (ORDER BY sports_pnl_ligue_1 ASC)         *  1.033 +
-            PERCENT_RANK() OVER (ORDER BY profit_factor_7d DESC)          *  1.872
+            PERCENT_RANK() OVER (ORDER BY total_pnl ASC)                  *  3.138 +
+            PERCENT_RANK() OVER (ORDER BY best_market_pnl ASC)            *  1.687 +
+            PERCENT_RANK() OVER (ORDER BY worst_market_pnl DESC)          *  4.170 +
+            PERCENT_RANK() OVER (ORDER BY avg_market_exposure ASC)        *  3.499 +
+            PERCENT_RANK() OVER (ORDER BY profitable_markets_count ASC)   *  8.184 +
+            PERCENT_RANK() OVER (ORDER BY sortino_ratio ASC)              *  5.656 +
+            PERCENT_RANK() OVER (ORDER BY annualized_return ASC)          *  0.861 +
+            PERCENT_RANK() OVER (ORDER BY calmar_ratio ASC)               *  2.794 +
+            PERCENT_RANK() OVER (ORDER BY sports_pnl ASC)                 *  6.614 +
+            PERCENT_RANK() OVER (ORDER BY sports_trades ASC)              *  3.808 +
+            PERCENT_RANK() OVER (ORDER BY sports_invested ASC)            *  3.465 +
+            PERCENT_RANK() OVER (ORDER BY sports_pnl_mlb ASC)             *  2.638 +
+            PERCENT_RANK() OVER (ORDER BY sports_pnl_la_liga ASC)         *  0.714 +
+            PERCENT_RANK() OVER (ORDER BY sports_pnl_ligue_1 ASC)         *  2.271 +
+            PERCENT_RANK() OVER (ORDER BY sports_pnl_bundesliga ASC)      *  4.147 +
+            PERCENT_RANK() OVER (ORDER BY sports_pnl_wnba ASC)            *  6.133 +
+            PERCENT_RANK() OVER (ORDER BY sports_pnl_golf ASC)            *  0.186 +
+            PERCENT_RANK() OVER (ORDER BY sports_pnl_college_football ASC)*  6.199 +
+            PERCENT_RANK() OVER (ORDER BY sports_pnl_f1 ASC)              *  5.724 +
+            PERCENT_RANK() OVER (ORDER BY total_invested_7d ASC)          *  7.310 +
+            PERCENT_RANK() OVER (ORDER BY best_market_pnl_7d ASC)         *  3.102 +
+            PERCENT_RANK() OVER (ORDER BY worst_market_pnl_7d DESC)       *  1.106 +
+            PERCENT_RANK() OVER (ORDER BY profit_factor_7d DESC)          *  1.503 +
+            PERCENT_RANK() OVER (ORDER BY win_rate_7d DESC)               *  2.523 +
+            PERCENT_RANK() OVER (ORDER BY pnl_cat_sports_7d ASC)          *  1.230 +
+            PERCENT_RANK() OVER (ORDER BY total_pnl_3d ASC)               *  2.515 +
+            PERCENT_RANK() OVER (ORDER BY total_invested_3d ASC)          *  8.824
         )::numeric, 1) AS sport_h_score
     FROM eligible
 )
